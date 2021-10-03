@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "gru-web-app"
+		},
+		{
+			"path": "gru-web-api"
+		}
+	],
+	"settings": {}
+}
