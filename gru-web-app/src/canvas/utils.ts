@@ -242,13 +242,14 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
                     prediction: prediction.dataSync().indexOf(1),
                     left: region.left
                 })
+                console.log(prediction)
 
                 context.putImageData(imageData,0,0)
             });
 
             predictions.sort((a: any, b: any) => a.left - b.left)
 
-            let prediction = parseInt(predictions.reduce((acc: string, val: any) => acc + (val.prediction > 0 ? val.prediction : ""), ""))
+            let prediction = parseInt(predictions.reduce((acc: string, val: any) => acc + (val.prediction >= 0 ? val.prediction : ""), ""))
 
             console.log("Number " + prediction)
             // regions.forEach(rect => {
