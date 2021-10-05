@@ -14,7 +14,12 @@ async function inferr(): Promise<tf.LayersModel> {
     }
 
     const model = await tf.loadLayersModel(
-                    window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + window.location.pathname + 'models/' + modelName);
+                    window.location.protocol + '//' +
+                    window.location.hostname +
+                    (window.location.port ? ':' + window.location.port : '') +
+                    window.location.hostname.includes('github') ? '/gru/' : '/' +
+                    'models/' +
+                    modelName);
 
     return model
 }
