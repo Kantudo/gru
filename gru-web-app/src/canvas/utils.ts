@@ -240,14 +240,15 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
                 let prediction = model.predict(tf.tensor([imgGrey], [1, 28, 28, 1])) as tf.Tensor
                 predictions.push({
                     prediction: prediction.dataSync().indexOf(1),
-                    left: region.left
+                    left: region.left,
+                    imageData: imageData
                 })
                 console.log(prediction)
 
-                context.putImageData(imageData,0,0)
             });
 
             predictions.sort((a: any, b: any) => a.left - b.left)
+            predictions.forEach((pred: any) => context.putImageData(pred.imageData,0,0))
 
             let prediction = parseInt(predictions.reduce((acc: string, val: any) => acc + (val.prediction >= 0 ? val.prediction : ""), ""))
 
