@@ -1,5 +1,5 @@
 import inferr from "../classify"
-import * as MSER from "../mser/mser"
+import MSER from "../mser/mser"
 import * as tf from '@tensorflow/tfjs'
 
 let model: tf.LayersModel
@@ -7,7 +7,7 @@ let model: tf.LayersModel
     model = await inferr()
 })()
 
-let mser = new MSER.MSER({
+let mser = new MSER({
     delta: 100, // Delta parameter of the MSER algorithm
     minArea: 0.0001, // Minimum area of any stable region relative to the image domain area
     maxArea: 0.5, // Maximum area of any stable region relative to the image domain area

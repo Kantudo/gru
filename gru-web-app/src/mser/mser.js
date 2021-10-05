@@ -254,6 +254,4 @@ class MSER {
 	}
 }
 
-module.exports = {
-	MSER
-}
+export default MSER

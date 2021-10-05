@@ -17,7 +17,7 @@ async function inferr(): Promise<tf.LayersModel> {
                     window.location.protocol + '//' +
                     window.location.hostname +
                     (window.location.port ? ':' + window.location.port : '') +
-                    window.location.hostname.includes('github') ? '/gru/' : '/' +
+                    (window.location.hostname.includes('github') ? '/gru/' : '/') +
                     'models/' +
                     modelName);
 
