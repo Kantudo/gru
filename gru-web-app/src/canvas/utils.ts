@@ -1,5 +1,5 @@
 import inferr from "../classify"
-import * as MSER from "../mser/mser"
+import MSER from "../mser/mser"
 import * as tf from '@tensorflow/tfjs'
 
 let model: tf.LayersModel
@@ -7,7 +7,7 @@ let model: tf.LayersModel
     model = await inferr()
 })()
 
-let mser = new MSER.MSER({
+let mser = new MSER({
     delta: 100, // Delta parameter of the MSER algorithm
     minArea: 0.0001, // Minimum area of any stable region relative to the image domain area
     maxArea: 0.5, // Maximum area of any stable region relative to the image domain area
@@ -242,13 +242,14 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
                     prediction: prediction.dataSync().indexOf(1),
                     left: region.left
                 })
+                console.log(prediction)
 
                 context.putImageData(imageData,0,0)
             });
 
             predictions.sort((a: any, b: any) => a.left - b.left)
 
-            let prediction = parseInt(predictions.reduce((acc: string, val: any) => acc + (val.prediction > 0 ? val.prediction : ""), ""))
+            let prediction = parseInt(predictions.reduce((acc: string, val: any) => acc + (val.prediction >= 0 ? val.prediction : ""), ""))
 
             console.log("Number " + prediction)
             // regions.forEach(rect => {
