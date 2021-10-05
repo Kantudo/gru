@@ -1,10 +1,7 @@
 import './index.css'
 import React from 'react'
 
-import axios from 'axios'
-
-import a from './utils'
-let greyScaleResizeBase64Img = a.greyScaleResizeBase64Img
+import canvas2Num from './utils'
 
 interface Point {
     x: number,
@@ -23,6 +20,7 @@ class Canvas extends React.Component {
             size: number
         },
         pts: Array<Point>,
+        touchPts: Array<Array<Point>>,
         isDown: boolean,
         guess: string
     }
@@ -35,9 +33,10 @@ class Canvas extends React.Component {
         this.state = {
             pen: {
                 color: "#ff7f90",//"#34c3eb",
-                size: 30
+                size: 25
             },
             pts: [],
+            touchPts: [],
             isDown: false,
             guess: ''
         }
@@ -50,6 +49,7 @@ class Canvas extends React.Component {
         this.canvasBoundingRect = null
 
         this.drawPoints = this.drawPoints.bind(this)
+        this.drawPointsTouch = this.drawPointsTouch.bind(this)
         this.onMouseMove = this.onMouseMove.bind(this)
         this.onMouseDown = this.onMouseDown.bind(this)
         this.onMouseUp = this.onMouseUp.bind(this)
@@ -72,8 +72,8 @@ class Canvas extends React.Component {
         if(this.canvas) {
             this.canvasBoundingRect = this.canvas.getBoundingClientRect()
 
-            this.canvas2.width = this.canvas.clientWidth
-            this.canvas2.height = this.canvas.clientHeight
+            this.canvas2.width = this.canvas.width
+            this.canvas2.height = this.canvas.height
         }
     }
 
@@ -101,18 +101,16 @@ class Canvas extends React.Component {
     updateImg() {
         if(this.canvas) {
 
-            greyScaleResizeBase64Img(this.canvas, 28, 28).then(({img, imgGreyScaleMatrix, boundingBox})=>{
+            canvas2Num(this.canvas, 28, 28).then(({img, boundingBoxes, prediction})=>{
 
                 this.imgRef.current && (this.imgRef.current.src = img)
 
-                axios.post('http://localhost:8080/img',{img:imgGreyScaleMatrix}).then((resp) => {
-                    // console.log(`Guess: ${resp.data.guess}`)
-                    this.setState({guess: resp.data.guess.toString()})
-                })
 
                 if (!this.context) return null
 
-                let {upperLeft, lowerRight} = boundingBox
+                this.setState({guess: prediction.toString()})
+
+                // let {upperLeft, lowerRight} = boundingBox
 
                 // this.context.lineWidth = 3;
                 // this.context.strokeStyle = "red";
@@ -139,9 +137,9 @@ class Canvas extends React.Component {
         this.state.isDown = true
         let points = this.getEventRelativeCoordinates(ev) as Point[]
         points.forEach(point => {
-            this.state.pts.push(point)
+            this.state.touchPts.push([point])
         })
-        this.drawPoints()
+        this.drawPointsTouch()
     }
 
     onMouseUp(ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
@@ -149,7 +147,7 @@ class Canvas extends React.Component {
         this.state.isDown = false
 
         this.context2 && this.canvas && this.context2.clearRect(0, 0, this.canvas.width, this.canvas.height)
-        this.context2 && this.canvas && this.context2.drawImage(this.canvas, 0, 0)
+        this.context2 && this.canvas && this.context2.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height)
         this.setState({pts: []})
 
         this.updateImg()
@@ -161,7 +159,7 @@ class Canvas extends React.Component {
 
         this.context2 && this.canvas && this.context2.clearRect(0, 0, this.canvas.width, this.canvas.height)
         this.context2 && this.canvas && this.context2.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height)
-        this.setState({pts: []})
+        this.setState({touchPts: []})
 
         this.updateImg()
     }
@@ -183,16 +181,19 @@ class Canvas extends React.Component {
         // console.log(this.context)
 
         let coords = this.getEventRelativeCoordinates(ev) as Point[]
+        console.log(coords.length);
 
-        (coords).forEach(point => {
+        (coords).forEach((point, i) => {
+            if (i > 1) return
             if(!this.state.isDown || !this.context || !this.canvas || !this.canvas2) throw "No canvas"
 
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
             this.context.drawImage(this.canvas2, 0, 0)
 
-            this.state.pts.push(point)
-            this.drawPoints()
+            this.state.touchPts[this.state.touchPts.length -1 -i].push(point)
+
+            this.drawPointsTouch()
         })
     }
 
@@ -227,6 +228,31 @@ class Canvas extends React.Component {
                     this.canvasBoundingRect.height,
             } as Point
         }
+    }
+
+    drawPointsTouch() {
+        // this.testDrawPoints(this.context, this.state.pts)
+        this.state.touchPts.forEach(pts => {
+            if(!this.context) return
+            this.context.lineCap = 'round'
+            this.context.lineWidth = this.state.pen.size
+            var i = 0;
+            var i2 = pts.length > 1 ? 1 : 0;
+            this.context.beginPath();
+            this.context.lineJoin = 'round'
+            this.context.moveTo(pts[0].x, pts[0].y)
+            for (; i < pts.length - i2; i++) {
+                this.context.quadraticCurveTo(
+                    pts[i].x,
+                    pts[i].y,
+                    (pts[i].x + pts[i + i2].x) / 2,
+                    (pts[i].y + pts[i + i2].y) / 2
+                );
+            }
+            this.context.strokeStyle = this.state.pen.color
+            this.context.stroke()
+            this.context.closePath()
+        })
     }
 
     drawPoints() {
@@ -268,12 +294,12 @@ class Canvas extends React.Component {
                     </div>
                     <div className="inline-flex">
                         <div className="flex flex-col justify-center">
-                            <div className="text-stroke-cyan-700 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-md ">
+                            <div className="text-stroke-cyan-700 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md ">
                                 Guess:
                             </div>
                         </div>
                         <div className="flex flex-col justify-center">
-                            <div className="text-stroke-orange-300 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-md ">
+                            <div className="text-stroke-orange-300 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md">
                                 { this.state.guess }
                             </div>
                         </div>
