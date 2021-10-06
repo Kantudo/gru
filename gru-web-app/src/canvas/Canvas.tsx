@@ -1,18 +1,37 @@
 import './index.css'
 import React from 'react'
+import Select from '../utils/Select'
 
 import canvas2Num from './utils'
+
 
 interface Point {
     x: number,
     y: number
 }
 
+interface ConvolutionalParameters {
+    nConvLayers: number,
+    nFilters: number,
+    pool: number,
+    nHiddenLayers: number,
+    nNeuronsPerLayer: number,
+    quantized: boolean,
+    noisy: boolean
+}
+
+interface MlpParameters {
+    nHiddenLayers: number,
+    nNeuronsPerLayer: number,
+    quantized: boolean,
+    noisy: boolean
+}
+
 class Canvas extends React.Component {
     canvasRef: React.RefObject<HTMLCanvasElement>
     imgRef: React.RefObject<HTMLImageElement>
     canvas: HTMLCanvasElement | null
-    canvasBoundingRect: ClientRect | null
+    canvasBoundingRect: DOMRect | null
     context: CanvasRenderingContext2D | null
     state: {
         pen: {
@@ -22,7 +41,11 @@ class Canvas extends React.Component {
         pts: Array<Point>,
         touchPts: Array<Array<Point>>,
         isDown: boolean,
-        guess: string
+        guess: string,
+        selectedNet: {
+            type: "CON" | "MLP",
+            parameters: ConvolutionalParameters | MlpParameters
+        } | null
     }
     canvas2: HTMLCanvasElement | undefined
     context2: CanvasRenderingContext2D | null | undefined
@@ -38,7 +61,16 @@ class Canvas extends React.Component {
             pts: [],
             touchPts: [],
             isDown: false,
-            guess: ''
+            guess: '',
+            selectedNet: {
+                type: "MLP",
+                parameters: {
+                    nHiddenLayers: 3,
+                    nNeuronsPerLayer: 128,
+                    quantized: true,
+                    noisy: true
+                }
+            }
         }
 
         this.canvasRef = React.createRef<HTMLCanvasElement>()
@@ -61,6 +93,7 @@ class Canvas extends React.Component {
         this.updateImg = this.updateImg.bind(this)
         this.getEventRelativeCoordinates = this.getEventRelativeCoordinates.bind(this)
         this.handleResize = this.handleResize.bind(this)
+        this.handleNetChange = this.handleNetChange.bind(this)
     }
 
     getContext() {
@@ -181,7 +214,7 @@ class Canvas extends React.Component {
         // console.log(this.context)
 
         let coords = this.getEventRelativeCoordinates(ev) as Point[]
-        console.log(coords.length);
+        // console.log(coords.length);
 
         (coords).forEach((point, i) => {
             if (i > 1) return
@@ -199,9 +232,10 @@ class Canvas extends React.Component {
 
     getEventRelativeCoordinates(ev: React.MouseEvent | React.TouchEvent): (Point | Array<Point>)
     {
-        if(!this.canvasBoundingRect) throw "No bounding rect for canvas found"
-
-        if(ev.nativeEvent instanceof TouchEvent) {
+        if(!this.canvas) throw "No bounding rect for canvas found"
+        this.canvasBoundingRect = this.canvas.getBoundingClientRect()
+    
+        if(window.TouchEvent && ev.nativeEvent instanceof TouchEvent) {
             ev = ev as React.TouchEvent
 
             let points = []
@@ -279,60 +313,188 @@ class Canvas extends React.Component {
         this.context.closePath()
     }
 
+    handleNetChange(event: React.SyntheticEvent) {
+        const target = event.target as HTMLInputElement
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+
+        if(name == "type") {
+            this.setState({
+                selectedNet: {
+                    ...this.state.selectedNet,
+                    type: value
+                }
+            })
+        } else {
+            // console.log(value)
+            this.setState({
+                selectedNet: {
+                    ...this.state.selectedNet,
+                    parameters: {
+                        ...this.state.selectedNet?.parameters,
+                        [name]: value
+                    }
+                }
+            })
+        }
+
+        // this.setState({
+
+        //     [name]: value
+        // });
+    }
+
     render() {
 
         return (
-            <div >
-                <div className="flex justify-between p-3 border-4 border-gray-500 border-dashed rounded-3xl mb-2">
-                    <div className="flex flex-col justify-center">
-                        <button
-                            className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-light font-mono py-2 px-4 rounded-2xl focus:outline-none"
-                            onMouseUpCapture={() => this.clear()}
-                        >
-                            clear
-                        </button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div>
+                    <div
+                        className="flex justify-between p-3 border-4 border-gray-500 border-dashed rounded-3xl mb-2 mx-auto"
+                        style={{width:"500px"}}
+                    >
+                        <div className="flex flex-col justify-center">
+                            <button
+                                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-light font-mono py-2 px-4 rounded-2xl focus:outline-none"
+                                onMouseUpCapture={() => this.clear()}
+                            >
+                                clear
+                            </button>
+                        </div>
+                        <div className="inline-flex">
+                            <div className="flex flex-col justify-center">
+                                <div className="text-stroke-cyan-700 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md ">
+                                    Guess:
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-center">
+                                <div className="text-stroke-orange-300 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md">
+                                    { this.state.guess }
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div className="inline-flex">
-                        <div className="flex flex-col justify-center">
-                            <div className="text-stroke-cyan-700 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md ">
-                                Guess:
+                    <canvas
+                        className=" border-4 border-gray-500 border rounded-3xl shadow-2xl"
+                        onMouseMove={(ev) => this.onMouseMove(ev)}
+                        onMouseDown={(ev) => this.onMouseDown(ev)}
+                        onMouseUp={(ev) => this.onMouseUp(ev)}
+                        onMouseLeave={(ev) => this.onMouseUp(ev)}
+                        onTouchMove={(ev) => this.onTouchMove(ev)}
+                        onTouchStart={(ev) => this.onTouchStart(ev)}
+                        onTouchEnd={(ev) => this.onTouchEnd(ev)}
+                        ref={this.canvasRef}
+                        width="500"
+                        height="500"
+                        style={{
+                            padding: "0",
+                            margin: "auto",
+                            display: "block",
+                            width: "100%",
+                            touchAction: "none",
+                            maxWidth: "500px",
+                            maxHeigth: "500px"
+                        }}
+                    >
+                    </canvas>
+                </div>
+
+                <div
+                    className="grid grid-cols-1 justify-items-center  p-3 border-4 border-gray-500 border-dashed rounded-3xl mb-2"
+                    style={{maxWidth:"500px"}}
+                >
+                    <div className="flex justify-center align-middle">
+                        <img ref={this.imgRef}
+                            className=" border-4 border-gray-500"
+                            style={{
+                                width:"100%",
+                                height:"100%",
+                                maxWidth:"220px",
+                                maxHeight:"220px"
+                            }}
+                        />
+                    </div>
+                    <div className="flex flex-col justify-evenly flex-wrap ">
+                        <div className="flex justify-around w-full">
+                            <div className="md:flex md:items-center">
+                                <label className=" block text-gray-500 font-bold truncate">
+                                    <input
+                                        type="checkbox"
+                                        name="quantized"
+                                        className="mr-2 leading-tight"
+                                        checked={this.state.selectedNet?.parameters?.quantized ?? false}
+                                        onChange={this.handleNetChange}
+                                    />
+                                    <span className="text-sm">Quantization (4 levels)</span>
+                                </label>
+                            </div>
+                            <div className="md:flex md:items-center">
+                                <label className={" block text-gray-500 font-bold " + (!this.state.selectedNet?.parameters?.quantized ? 'opacity-25' : '')} >
+                                    <input
+                                        type="checkbox"
+                                        name="noisy"
+                                        className="mr-2 leading-tight"
+                                        disabled={!this.state.selectedNet?.parameters?.quantized}
+                                        checked={this.state.selectedNet?.parameters?.noisy ?? false}
+                                        onChange={this.handleNetChange}
+                                    />
+                                    <span className="text-sm">Noise</span>
+                                </label>
                             </div>
                         </div>
-                        <div className="flex flex-col justify-center">
-                            <div className="text-stroke-orange-300 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md">
-                                { this.state.guess }
+
+                        <div className="w-full mt-4">
+                            <label className="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2">
+                                Net type
+                            </label>
+                            <div className="relative ">
+                                <select
+                                    className="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
+                                    id="net-type"
+                                    placeholder="Network type"
+                                    name="type"
+                                    value={this.state.selectedNet?.type ?? "MLP"}
+                                    onChange={this.handleNetChange}
+                                >
+                                    <option value="CON">Convolutional</option>
+                                    <option value="MLP">MLP</option>
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                </div>
                             </div>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <Select
+                                value={this.state.selectedNet?.parameters.nHiddenLayers ?? 1}
+                                options={[{label: '1', value: '1'}]}
+                                label="Num of hidden layers"
+                                onChange={this.handleNetChange}
+                            ></Select>
+                        </div>
+
+                        {/* <div>
+                            <div className="relative inline-block w-full text-gray-700">
+                                <select
+                                    className="w-full h-10 pl-3 pr-6 text-base border rounded-lg appearance-none focus:shadow-outline"
+                                    placeholder="Network type"
+                                    value={this.state.selectedNet?.type ?? "MLP"}
+                                    onChange={this.handleNetChange}
+                                >
+
+                                    <option value="CON">Convolutional</option>
+                                    <option value="MLP">MLP</option>
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none h-10">
+                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                                </div>
+                            </div>
+                        </div> */}
+
+
                     </div>
                 </div>
-                <canvas
-                    className=" border-4 border-gray-500 border rounded-3xl shadow-2xl"
-                    onMouseMove={(ev) => this.onMouseMove(ev)}
-                    onMouseDown={(ev) => this.onMouseDown(ev)}
-                    onMouseUp={(ev) => this.onMouseUp(ev)}
-                    onMouseLeave={(ev) => this.onMouseUp(ev)}
-                    onTouchMove={(ev) => this.onTouchMove(ev)}
-                    onTouchStart={(ev) => this.onTouchStart(ev)}
-                    onTouchEnd={(ev) => this.onTouchEnd(ev)}
-                    ref={this.canvasRef}
-                    width="500"
-                    height="500"
-                    style={{
-                        padding: "0",
-                        margin: "auto",
-                        display: "block",
-                        width: "100%",
-                        touchAction: "none"
-                    }}
-                >
-                </canvas>
-                <img ref={this.imgRef} width="200px"
-                    className=" border-4 border-gray-500"
-                    // style={{
-                    //     width:"200px",
-                    //     height:"200px"
-                    // }}
-                />
             </div>
         )
     }

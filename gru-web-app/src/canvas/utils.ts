@@ -243,7 +243,7 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
                     left: region.left,
                     imageData: imageData
                 })
-                console.log(prediction)
+                // console.log(prediction)
 
             });
 
@@ -252,7 +252,7 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
 
             let prediction = parseInt(predictions.reduce((acc: string, val: any) => acc + (val.prediction >= 0 ? val.prediction : ""), ""))
 
-            console.log("Number " + prediction)
+            // console.log("Number " + prediction)
             // regions.forEach(rect => {
 
 
