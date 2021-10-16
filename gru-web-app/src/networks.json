@@ -1,0 +1,65 @@
+[
+    {
+        "value": "cnn",
+        "label": "Convolucional",
+        "parameters": {
+            "ncl": {
+                "label": "Num of conv layers",
+                "value": "3"
+            },
+            "filters": {
+                "label": "Num of filters",
+                "value": [
+                    "32",
+                    "64",
+                    "128"
+                ]
+            },
+            "pool": {
+                "label": "Max pooling pool size",
+                "value": "2"
+            },
+            "nhl": {
+                "label": "Num of hidden layers",
+                "value": "1"
+            },
+            "nphl": {
+                "label": "Neurons per hidden layer",
+                "value": [
+                    "4",
+                    "8",
+                    "16",
+                    "32",
+                    "64",
+                    "128"
+                ]
+            }
+        }
+    },
+    {
+        "value": "mlp",
+        "label": "MLP",
+        "parameters": {
+            "hl": {
+                "label": "Num of hidden layers",
+                "value": [
+                    "1",
+                    "2",
+                    "3"
+                ]
+            },
+            "nphl": {
+                "label": "Neurons per hidden layer",
+                "value": [
+                    "2",
+                    "4",
+                    "8",
+                    "16",
+                    "32",
+                    "64",
+                    "128"
+                ]
+            }
+        }
+    }
+]
