@@ -1,7 +1,7 @@
 import './index.css'
 import React from 'react'
 import Select from '../utils/Select'
-import Histogram from './Histogram'
+// import Histogram from './Histogram'
 import {inferr, Net} from "../classify"
 
 
@@ -322,12 +322,16 @@ class Canvas extends React.Component {
         const value = target.type === 'checkbox' ? target.checked : target.value;
         const name = target.name;
 
-        let newNet
+        let newNet: Net
         if (name == "type") {
-            newNet = this.state.availableNets.find((net: Net) => net.type == target.value)
-            this.setState({
-                selectedNet: newNet
-            })
+            let availableNet = this.state.availableNets.find((net: Net) => net.type == target.value)
+            if(availableNet) {
+                newNet = availableNet
+                this.setState({
+                    selectedNet: newNet
+                })
+                inferr(newNet).then(model => {this.setState({model: model})})
+            }
         } else {
             // console.log(value)
             if (name == "quantized" || name == "noisy") {
@@ -350,8 +354,8 @@ class Canvas extends React.Component {
             this.setState({
                 selectedNet: newNet,
             })
+            inferr(newNet).then(model => {this.setState({model: model})})
         }
-        inferr(newNet).then(model => {this.setState({model: model})})
 
         // console.log(this.state.selectedNet)
 
@@ -501,7 +505,7 @@ class Canvas extends React.Component {
                                             (networks as any).find((net: any) => net.value == this.state.selectedNet?.type).parameters
                                         ).map(([key, entry]) => (
                                             <Select
-                                                value={(this.state.selectedNet?.parameters[key as string])}
+                                                value={((this.state.selectedNet?.parameters as any)[key]).toString()}
                                                 options={
                                                     typeof (entry as any).value == "object"
                                                     ?

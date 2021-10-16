@@ -68,7 +68,6 @@ async function inferr(model?: Net): Promise<tf.LayersModel> {
 
     return loadedModel
 }
-
 // export default inferr
-export type {Net}
+export type {Net, MlpParameters, ConvolutionalParameters}
 export {inferr}
