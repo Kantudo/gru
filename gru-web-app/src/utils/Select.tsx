@@ -6,6 +6,7 @@ interface Option {
 }
 
 interface SelectProps {
+    name: string
     options: Option[]
     value: string
     label: string
@@ -22,11 +23,12 @@ function Select(props: SelectProps) {
                 <select
                     className="block appearance-none w-full bg-gray-200 border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500"
                     // id="select"
-                    placeholder="Network type"
-                    name="type"
+                    // placeholder="Network type"
+                    name={props.name}
                     value={props.value}
                     onChange={props.onChange}
                 >
+                    <option value="" disabled style={{display:"none"}}>Select {props.label}</option>
                     {
                         props.options.map((option, index) => (
                                 <option key={index} value={option.value}>{option.label}</option>

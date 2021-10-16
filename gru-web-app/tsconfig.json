@@ -1,7 +1,12 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext",
+      "es2017"
+    ],
     // "allowJs": true,
     // "skipLibCheck": false,
     "esModuleInterop": false,
@@ -14,7 +19,6 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react",
-
     "allowJs": true,
     "module": "commonjs",
     "moduleResolution": "node",
@@ -34,7 +38,9 @@
     "noFallthroughCasesInSwitch": true,
     "allowUnreachableCode": false,
   },
-  "include": ["./src"],
+  "include": [
+    "./src"
+  ],
   "exclude": [
     "node_modules/"
   ]

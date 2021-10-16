@@ -1,11 +1,10 @@
-import inferr from "../classify"
 import MSER from "../mser/mser"
 import * as tf from '@tensorflow/tfjs'
 
-let model: tf.LayersModel
-(async () => {
-    model = await inferr()
-})()
+// let model: tf.LayersModel
+// (async () => {
+//     model = await inferr()
+// })()
 
 let mser = new MSER({
     delta: 100, // Delta parameter of the MSER algorithm
@@ -166,7 +165,7 @@ function img2GreyScale(imdata: ImageData): ImageData {
     return imdata
 }
 
-function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: number) {
+function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: number, model: any) {
     return new Promise<{
         img: string,
         prediction: number,
