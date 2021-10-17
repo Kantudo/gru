@@ -1,5 +1,5 @@
 import * as tf from '@tensorflow/tfjs'
-import * as d3 from "d3";
+// import * as d3 from "d3";
 
 interface ConvolutionalParameters {
     ncl: number, // Number of convolutional layers
@@ -58,13 +58,10 @@ async function inferr(model?: Net): Promise<tf.LayersModel> {
         (cachedModels as any)[modelName] = loadedModel
     }
 
-
-    let flattenedWeights = loadedModel.getWeights().reduce(
-        (acc: any, arr: any) => acc.concat( Array.from(arr.dataSync()) ), [])
     // console.log(flattenedWeights)
     // d3.bin
-    var bins = d3.bin().domain([-1, 1])
-    console.log(bins(flattenedWeights))
+    // var bins = d3.bin().domain([-1, 1])
+    // console.log(bins(flattenedWeights))
 
     return loadedModel
 }

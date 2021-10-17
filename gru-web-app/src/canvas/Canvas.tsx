@@ -17,6 +17,7 @@ interface Point {
 class Canvas extends React.Component {
     canvasRef: React.RefObject<HTMLCanvasElement>
     imgRef: React.RefObject<HTMLImageElement>
+    histogramParentRef: React.RefObject<HTMLDivElement>
     canvas: HTMLCanvasElement | null
     canvasBoundingRect: DOMRect | null
     context: CanvasRenderingContext2D | null
@@ -31,7 +32,8 @@ class Canvas extends React.Component {
         guess: string,
         selectedNet: Net | null,
         availableNets: Net[],
-        model: any
+        model: any,
+        modelWeights: number[],
     }
     canvas2: HTMLCanvasElement | undefined
     context2: CanvasRenderingContext2D | null | undefined
@@ -72,14 +74,13 @@ class Canvas extends React.Component {
                     }
                 }
             ],
-            model: null
+            model: null,
+            modelWeights: [],
         }
-
-        this.state.selectedNet = this.state.availableNets[0]
-        inferr(this.state.selectedNet).then((model: any) => {this.state.model = model})
 
         this.canvasRef = React.createRef<HTMLCanvasElement>()
         this.imgRef = React.createRef<HTMLImageElement>()
+        this.histogramParentRef = React.createRef<HTMLDivElement>()
         this.canvas = null
         this.context = null
 
@@ -116,7 +117,15 @@ class Canvas extends React.Component {
     }
 
     componentDidMount() {
-        this.getContext()
+        this.state.selectedNet = this.state.availableNets[0]
+        inferr(this.state.selectedNet).then((model: any) => {
+            this.setState({
+                model: model,
+                modelWeights: this.getModelWeights(model),
+            })
+            this.getContext()
+        })
+        this.clear() // set image to black at first
         window.addEventListener('resize', this.handleResize)
     }
     componentDidUpdate() {
@@ -134,16 +143,18 @@ class Canvas extends React.Component {
     clear() {
         this.context && this.canvas && this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
         this.context2 && this.canvas2 && this.context2.clearRect(0, 0, this.canvas2.width, this.canvas2.height)
+        if(this.imgRef && this.imgRef.current) {
+            this.imgRef.current.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+        }
     }
 
     updateImg() {
         if (this.canvas) {
-
             canvas2Num(this.canvas, 28, 28, this.state.model).then(({ img, boundingBoxes, prediction }) => {
-
+                
                 this.imgRef.current && (this.imgRef.current.src = img)
-
-
+                
+                
                 if (!this.context) return null
 
                 this.setState({ guess: prediction.toString() })
@@ -161,6 +172,11 @@ class Canvas extends React.Component {
             })
 
         }
+    }
+
+    getModelWeights(model: any) {
+        return model.getWeights().reduce(
+            (acc: any, arr: any) => acc.concat( Array.from(arr.dataSync()) ), [])
     }
 
     onMouseDown(ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
@@ -211,7 +227,8 @@ class Canvas extends React.Component {
         // I dont need in memory canvas
         this.canvas2 && this.context.drawImage(this.canvas2, 0, 0); // Draw to inmemory cvs2
         this.state.pts.push(this.getEventRelativeCoordinates(ev) as Point);
-        this.drawPoints()
+        this.drawPoints();
+
     }
 
     onTouchMove(ev: React.TouchEvent<HTMLCanvasElement>) {
@@ -330,7 +347,12 @@ class Canvas extends React.Component {
                 this.setState({
                     selectedNet: newNet
                 })
-                inferr(newNet).then(model => {this.setState({model: model})})
+                inferr(newNet).then(model => {
+                    this.setState({
+                        model: model,
+                        modelWeights: this.getModelWeights(model)
+                    }, () => this.updateImg())
+                })
             }
         } else {
             // console.log(value)
@@ -354,7 +376,12 @@ class Canvas extends React.Component {
             this.setState({
                 selectedNet: newNet,
             })
-            inferr(newNet).then(model => {this.setState({model: model})})
+            inferr(newNet).then(model => {
+                this.setState({
+                    model: model,
+                    modelWeights: this.getModelWeights(model)
+                }, () => this.updateImg())
+            })
         }
 
         // console.log(this.state.selectedNet)
@@ -368,7 +395,7 @@ class Canvas extends React.Component {
     render() {
 
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-4">
                 <div>
                     <div
                         className="flex justify-between p-3 border-4 border-gray-500 border-dashed rounded-3xl mb-2 mx-auto"
@@ -434,10 +461,6 @@ class Canvas extends React.Component {
                             }}
                         />
                     </div>
-                    
-                    {/* <div>
-                        <Histogram></Histogram>
-                    </div> */}
 
                     <div className="flex flex-col justify-evenly flex-wrap w-10/12">
                         <div className="flex justify-around w-full">
@@ -543,6 +566,20 @@ class Canvas extends React.Component {
                         </div> */}
 
 
+                    </div>
+                </div>
+                <div
+                    className='grid place-items-center p-4 border-4 border-gray-500 border-dashed rounded-3xl w-full'
+                >
+                    <div ref={this.histogramParentRef} className='w-full h-full flex flex-col justify-around'>
+                        <div className="text-stroke-cyan-700 p-2 text-transparent opacity-85   overflow-hidden text-4xl text-stroke-sm md:text-stroke-md w-full text-center">
+                            Histogram
+                        </div>
+                        <Histogram
+                            data={this.state.modelWeights}
+                            width={this.histogramParentRef.current?.clientWidth}
+                            height={300}
+                        ></Histogram>
                     </div>
                 </div>
             </div>
