@@ -1,7 +1,7 @@
 import './index.css'
 import React from 'react'
 import Select from '../utils/Select'
-// import Histogram from './Histogram'
+import Histogram from './Histogram'
 import {inferr, Net} from "../classify"
 
 
