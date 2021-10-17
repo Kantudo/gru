@@ -190,6 +190,7 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
             // console.log({img})
             let imdata = origContext.getImageData(0, 0, origCanvas.width, origCanvas.height)
             img2GreyScale(imdata)
+            // console.log(imdata)
             let regions = mser.extract(imdata).map((region: any) => region.rect)
                             // merge overlapping
             // var intersection;
@@ -259,6 +260,7 @@ function canvas2Num(origCanvas: HTMLCanvasElement, newWidth: number, newHeight: 
             // console.log(imgGreyScaleMatrix)
             // });
 
+            console.log('hey!')
             resolve({
                 img:canvas.toDataURL(),
                 boundingBoxes: boundingBoxes,
