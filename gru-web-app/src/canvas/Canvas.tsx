@@ -31,7 +31,8 @@ class Canvas extends React.Component {
         guess: string,
         selectedNet: Net | null,
         availableNets: Net[],
-        model: any
+        model: any,
+        modelWeights: number[]
     }
     canvas2: HTMLCanvasElement | undefined
     context2: CanvasRenderingContext2D | null | undefined
@@ -72,11 +73,17 @@ class Canvas extends React.Component {
                     }
                 }
             ],
-            model: null
+            model: null,
+            modelWeights: []
         }
 
         this.state.selectedNet = this.state.availableNets[0]
-        inferr(this.state.selectedNet).then((model: any) => {this.state.model = model})
+        inferr(this.state.selectedNet).then((model: any) => {
+            this.setState({
+                model: model,
+                modelWeights: this.getModelWeights(model),
+            })
+        })
 
         this.canvasRef = React.createRef<HTMLCanvasElement>()
         this.imgRef = React.createRef<HTMLImageElement>()
@@ -161,6 +168,11 @@ class Canvas extends React.Component {
             })
 
         }
+    }
+
+    getModelWeights(model: any) {
+        return model.getWeights().reduce(
+            (acc: any, arr: any) => acc.concat( Array.from(arr.dataSync()) ), [])
     }
 
     onMouseDown(ev: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
@@ -322,12 +334,21 @@ class Canvas extends React.Component {
         const value = target.type === 'checkbox' ? target.checked : target.value;
         const name = target.name;
 
-        let newNet
+        let newNet: Net
         if (name == "type") {
-            newNet = this.state.availableNets.find((net: Net) => net.type == target.value)
-            this.setState({
-                selectedNet: newNet
-            })
+            let availableNet = this.state.availableNets.find((net: Net) => net.type == target.value)
+            if(availableNet) {
+                newNet = availableNet
+                this.setState({
+                    selectedNet: newNet
+                })
+                inferr(newNet).then(model => {
+                    this.setState({
+                        model: model,
+                        modelWeights: this.getModelWeights(model)
+                    }, () => this.updateImg())
+                })
+            }
         } else {
             // console.log(value)
             if (name == "quantized" || name == "noisy") {
@@ -350,8 +371,13 @@ class Canvas extends React.Component {
             this.setState({
                 selectedNet: newNet,
             })
+            inferr(newNet).then(model => {
+                this.setState({
+                    model: model,
+                    modelWeights: this.getModelWeights(model)
+                }, () => this.updateImg())
+            })
         }
-        inferr(newNet).then(model => {this.setState({model: model})})
 
         // console.log(this.state.selectedNet)
 
@@ -430,10 +456,14 @@ class Canvas extends React.Component {
                             }}
                         />
                     </div>
-                    
-                    {/* <div>
-                        <Histogram></Histogram>
-                    </div> */}
+
+                    <div>
+                        <Histogram
+                            data={this.state.modelWeights}
+                            width={"310px"}
+                            height={"200px"}
+                        ></Histogram>
+                    </div>
 
                     <div className="flex flex-col justify-evenly flex-wrap w-10/12">
                         <div className="flex justify-around w-full">
@@ -501,7 +531,7 @@ class Canvas extends React.Component {
                                             (networks as any).find((net: any) => net.value == this.state.selectedNet?.type).parameters
                                         ).map(([key, entry]) => (
                                             <Select
-                                                value={(this.state.selectedNet?.parameters[key as string])}
+                                                value={((this.state.selectedNet?.parameters as any)[key]).toString()}
                                                 options={
                                                     typeof (entry as any).value == "object"
                                                     ?
